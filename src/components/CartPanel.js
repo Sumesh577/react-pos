@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { FaUserCircle, FaShoppingCart, FaPlus, FaMinus, FaTrash, FaSync, FaCheck, FaPrint } from 'react-icons/fa';
-import { addToCart, removeFromCart, updateQuantity, clearCart, placeOrder, fetchCart } from '../store/cartSlice';
+import { FaUserCircle, FaShoppingCart, FaPlus, FaMinus, FaTrash, FaCheck, FaPrint, FaTimes } from 'react-icons/fa';
+import { removeFromCart, clearCart, placeOrder, clearOrderNumber, addToCart } from '../store/cartSlice';
 import { showNotification } from '../store/notificationSlice';
 import { selectCustomers } from '../store/dataSlice';
 import CustomerModal from './CustomerModal';
@@ -9,22 +9,21 @@ import CustomerOrdersModal from './CustomerOrdersModal';
 import EmptyState from './EmptyState';
 import LoadingSpinner from './LoadingSpinner';
 
-const CartPanel = ({
-  selectedCustomer,
-  customerModalOpen,
-  tax,
-  payable,
-  onCustomerModalOpen,
-  onCustomerModalClose,
-  onCustomerSelect,
-  onDownloadReceipt
-}) => {
+const CartPanel = () => {
   const dispatch = useDispatch();
-  const { items: cartItems, total: cartTotal, id: cartId, isLoading: isPlacingOrder, orderNumber } = useSelector(state => state.cart);
+  const { items: cartItems, total: cartTotal, cartId, isLoading: isPlacingOrder, orderNumber } = useSelector(state => state.cart);
   const { items: customers, isLoading: customersLoading } = useSelector(selectCustomers);
+
+  // Local state
   const [showClearCartConfirm, setShowClearCartConfirm] = useState(false);
   const [customerOrdersModalOpen, setCustomerOrdersModalOpen] = useState(false);
   const [selectedCustomerForOrders, setSelectedCustomerForOrders] = useState(null);
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+
+  // Calculate tax and payable amount internally
+  const tax = cartTotal * 0.0; // 0% tax rate
+  const payable = cartTotal + tax;
 
   // Format customers data for the modal
   const formattedCustomers = customers.map(customer => ({
@@ -38,16 +37,18 @@ const CartPanel = ({
     addresses: customer.addresses
   }));
 
-//   const handleQuantityChange = (item, delta) => {
-//     const newQuantity = item.quantity + delta;
-//     if (newQuantity > 0) {
-//       dispatch(updateQuantity({ itemId: item.id, quantity: newQuantity }));
-//     }
-//   };
-
   const handleRemoveItem = (item) => {
-    dispatch(removeFromCart(item.id));
+    dispatch(removeFromCart({ cartId, itemId: parseInt(item.id), sku: item.product.sku }));
     dispatch(showNotification('success', 'Item removed from cart'));
+  };
+
+  const handleQuantityChange = (item, change) => {
+    const newQuantity = item.quantity + change;
+    if (newQuantity <= 0) {
+      handleRemoveItem(item);
+    } else {
+      dispatch(addToCart({ cartId, sku: item.product.sku, quantity: newQuantity }));
+    }
   };
 
   const handleClearCart = () => {
@@ -71,15 +72,6 @@ const CartPanel = ({
       .unwrap()
       .then((orderData) => {
         dispatch(showNotification('success', 'Order placed successfully!'));
-        // Generate receipt text
-        const receiptText = `Order #${orderData.order_number}\nDate: ${new Date().toLocaleString()}\nCustomer: ${selectedCustomer ? selectedCustomer.name : 'N/A'}\nItems:\n${cartItems.map(i => `- ${i.product.name} x${i.quantity} $${i.prices.price.value.toFixed(2)}`).join('\n')}\nTotal: $${cartTotal.toFixed(2)}`;
-
-        // Call the download receipt function with the generated receipt
-        if (onDownloadReceipt) {
-          // Create a temporary receipt object for download
-          const tempReceipt = { text: receiptText, orderNumber: orderData.order_number };
-          onDownloadReceipt(tempReceipt);
-        }
       })
       .catch((error) => {
         console.error('Error placing order:', error);
@@ -87,17 +79,17 @@ const CartPanel = ({
       });
   };
 
-  const handleRefreshCart = () => {
-    if (cartId) {
-      dispatch(fetchCart(cartId));
-    }
-  };
-
   const handleViewCustomerOrders = (customer) => {
     setSelectedCustomerForOrders(customer);
     setCustomerOrdersModalOpen(true);
-    onCustomerModalClose(); // Close the customer selection modal
+    setCustomerModalOpen(false);
   };
+
+  const handleCustomerSelect = (customer) => {
+    setSelectedCustomer(customer);
+    setCustomerModalOpen(false);
+  };
+
   return (
     <div className="cart-panel">
       <div className="cart-user">
@@ -119,7 +111,7 @@ const CartPanel = ({
         <button
           className="add-to-cart-btn"
           style={{marginLeft: 12, padding: '8px 12px', fontSize: 14}}
-          onClick={onCustomerModalOpen}
+          onClick={() => setCustomerModalOpen(true)}
         >
           {selectedCustomer ? 'Change' : 'Add'}
         </button>
@@ -127,8 +119,8 @@ const CartPanel = ({
 
       <CustomerModal
         open={customerModalOpen}
-        onClose={onCustomerModalClose}
-        onSelect={onCustomerSelect}
+        onClose={() => setCustomerModalOpen(false)}
+        onSelect={handleCustomerSelect}
         customers={formattedCustomers}
         onViewOrders={handleViewCustomerOrders}
       />
@@ -142,13 +134,6 @@ const CartPanel = ({
       <div className="cart-list">
         <div className="cart-header">
           <h3>Cart Items</h3>
-          <button
-            className="refresh-cart-btn"
-            onClick={handleRefreshCart}
-            title="Refresh cart"
-          >
-            <FaSync />
-          </button>
         </div>
         {cartItems.length === 0 && (
           <EmptyState
@@ -221,8 +206,6 @@ const CartPanel = ({
         </div>
       )}
 
-
-
       <div className="order-summary">
         <div className="summary-row">
           <span>Sub total</span>
@@ -238,8 +221,6 @@ const CartPanel = ({
         </div>
       </div>
 
-
-
       <div className="cart-actions">
         <button
           className="proceed-btn"
@@ -248,19 +229,49 @@ const CartPanel = ({
         >
           {isPlacingOrder ? <LoadingSpinner size="small" text="" /> : <FaCheck />} Place Order
         </button>
-
       </div>
 
       {orderNumber && (
         <div className="order-success">
-          <FaCheck /> Order Placed! Order Number: {orderNumber}
-          <button
-            className="hold-btn"
-            style={{marginTop:8}}
-            onClick={onDownloadReceipt}
-          >
-            <FaPrint /> Print/Download Receipt
-          </button>
+          <div className="order-success-header">
+            <div className="order-success-icon">
+              <FaCheck />
+            </div>
+            <div>
+              <h3 className="order-success-title">Order Placed Successfully!</h3>
+              <p className="order-success-subtitle">Your order has been processed and confirmed</p>
+            </div>
+          </div>
+
+          <div className="order-number-display">
+            <div className="order-number-label">Order Number</div>
+            <div className="order-number-value">#{orderNumber}</div>
+          </div>
+
+          <div className="order-success-actions">
+            <button
+              className="order-success-btn"
+              onClick={handlePlaceOrder}
+            >
+              <FaPrint /> Print Receipt
+            </button>
+            <button
+              className="order-success-btn secondary"
+              onClick={() => {
+                // Clear the order number to hide this notification
+                dispatch(clearOrderNumber());
+              }}
+            >
+              <FaTimes /> Dismiss
+            </button>
+          </div>
+
+          <div className="order-success-details">
+            <div>Order placed on {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</div>
+            {selectedCustomer && (
+              <div>Customer: {selectedCustomer.name}</div>
+            )}
+          </div>
         </div>
       )}
     </div>

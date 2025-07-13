@@ -1,20 +1,17 @@
 import React from 'react';
 import {
-  FaHome, FaUser, FaCashRegister, FaHistory, FaChartPie, FaSyncAlt, FaUserCircle, FaTimes, FaChevronLeft
+  FaHome, FaUser, FaCashRegister, FaHistory, FaChartPie, FaSyncAlt, FaUserCircle, FaTimes
 } from 'react-icons/fa';
+import Logo from './Logo';
 
 const Sidebar = ({
   isMobile,
   showMobileMenu,
-  sidebarCollapsed,
   activeNav,
   currentUser,
-  onMobileMenuToggle,
   onMobileMenuClose,
-  onSidebarToggle,
   onNavClick,
-  onLogout,
-  onRefresh
+  onLogout
 }) => {
   return (
     <aside className={`sidebar${showMobileMenu ? ' mobile-open' : ''}`}>
@@ -27,17 +24,10 @@ const Sidebar = ({
         </button>
       )}
 
-      {!isMobile && (
-        <button
-          className="sidebar-toggle"
-          onClick={onSidebarToggle}
-        >
-          <FaChevronLeft />
-        </button>
-      )}
-
       <div className="sidebar-content">
-        <div style={{ height: 48, marginBottom: 32 }}></div>
+        <div className="sidebar-logo">
+          <Logo size="medium" />
+        </div>
         <nav className="nav">
           <button
             className={`nav-btn${activeNav === 'Home' ? ' active' : ''}`}

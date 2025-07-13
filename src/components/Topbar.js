@@ -1,5 +1,6 @@
 import React from 'react';
 import { FaSearch } from 'react-icons/fa';
+import Logo from './Logo';
 
 const Topbar = ({
   search,
@@ -8,7 +9,9 @@ const Topbar = ({
 }) => {
   return (
     <div className="topbar">
-      <div style={{ width: 40, height: 40, marginRight: 18 }}></div>
+      <div className="topbar-logo">
+        <Logo size="small" />
+      </div>
       <div className="search-bar-container">
         <FaSearch className="search-icon" />
         <input

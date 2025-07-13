@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FaSpinner } from 'react-icons/fa';
 import { loginUser, selectError, selectIsLoading, clearError } from '../store/authSlice';
+import Logo from '../components/Logo';
 
 const Login = () => {
   const [loginCredentials, setLoginCredentials] = useState({ username: '', password: '' });
@@ -44,6 +45,9 @@ const Login = () => {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
+          <div className="login-logo">
+            <Logo size="large" />
+          </div>
           <h1>POS System</h1>
           <p>Point of Sale Management</p>
         </div>

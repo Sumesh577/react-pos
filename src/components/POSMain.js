@@ -46,18 +46,14 @@ const POSMain = () => {
   // Local State
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
-  const [customerModalOpen, setCustomerModalOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   const [orderHistory, setOrderHistory] = useState([]);
   const [orderHistoryOpen, setOrderHistoryOpen] = useState(false);
 
   // UI/UX State
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [activeNav, setActiveNav] = useState('Home');
-
 
   // Cart fetching is now handled in auth slice after cart creation
 
@@ -102,27 +98,10 @@ const POSMain = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const handleDownloadReceipt = (receiptData) => {
-    if (!receiptData) return;
-
-    const receiptText = receiptData.text || receiptData;
-    const blob = new Blob([receiptText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `receipt-${receiptData.orderNumber || Date.now()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   const handleLogout = async () => {
     await dispatch(logoutUser());
     navigate('/login', { replace: true });
   };
-
-  // Calculations
-  const tax = cartTotal * 0.0;
-  const payable = cartTotal + tax;
 
   // Event Handlers
   const handleSearchChange = (e) => {
@@ -147,7 +126,7 @@ const POSMain = () => {
   };
 
   return (
-    <div className={`app-container${sidebarCollapsed ? ' sidebar-collapsed' : ''}${isMobile ? ' mobile' : ''}`}>
+    <div className={`app-container${isMobile ? ' mobile' : ''}`}>
       {/* Notifications */}
       <Notification />
 
@@ -165,11 +144,9 @@ const POSMain = () => {
       <Sidebar
         isMobile={isMobile}
         showMobileMenu={showMobileMenu}
-        sidebarCollapsed={sidebarCollapsed}
         activeNav={activeNav}
         currentUser={currentUser}
         onMobileMenuClose={() => setShowMobileMenu(false)}
-        onSidebarToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         onNavClick={handleNavClick}
         onLogout={handleLogout}
       />
@@ -182,8 +159,6 @@ const POSMain = () => {
           isMobile={isMobile}
           onSearchChange={handleSearchChange}
         />
-
-
 
         {/* Category Menu */}
         <CategoryList category={category} setCategory={setCategory} />
@@ -203,16 +178,7 @@ const POSMain = () => {
           />
 
           {/* Cart Panel */}
-          <CartPanel
-            selectedCustomer={selectedCustomer}
-            customerModalOpen={customerModalOpen}
-            tax={tax}
-            payable={payable}
-            onCustomerModalOpen={() => setCustomerModalOpen(true)}
-            onCustomerModalClose={() => setCustomerModalOpen(false)}
-            onCustomerSelect={setSelectedCustomer}
-            onDownloadReceipt={handleDownloadReceipt}
-          />
+          <CartPanel />
         </div>
       </div>
 
